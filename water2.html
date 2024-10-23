@@ -1,0 +1,457 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Hydroelectric Power Simulation</title>
+  <style>
+    .container {
+      position: relative;
+      width: 1000px;
+      height: 800px;
+      margin: 0 auto;
+      background: #f0f8ff;
+      overflow: hidden;
+    }
+    .input-panel {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      display: flex;
+      gap: 20px;
+      z-index: 100;
+      transition: all 0.3s;
+    }
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .input-group label {
+      font-size: 12px;
+      color: #666;
+    }
+    .input-group input {
+      width: 100px;
+      padding: 5px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    .reservoir {
+      position: absolute;
+      width: 180px;
+      height: 120px;
+      border: 3px solid #4a90e2;
+      background: white;
+      transition: all 0.3s;
+    }
+    .water {
+      position: absolute;
+      bottom: 0;
+      width: 100%;
+      background: #a0d2ff;
+      transition: height 1s;
+    }
+    .pipe {
+      position: absolute;
+      background: #cccccc;
+      border-radius: 15px;
+      width: 20px;
+    }
+    .turbine-container {
+      position: absolute;
+      width: 80px;
+      height: 80px;
+      background: #95a5a6;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s;
+    }
+    .turbine-axis {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      background: #34495e;
+      border-radius: 50%;
+      z-index: 2;
+    }
+    .turbine-wheel {
+      width: 60px;
+      height: 60px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .turbine-blades {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      transform-origin: center center;
+    }
+    .turbine-blade {
+      position: absolute;
+      width: 60px;
+      height: 8px;
+      background: #7f8c8d;
+      left: 50%;
+      top: 50%;
+      transform-origin: center;
+    }
+    .turbine-blade:nth-child(1) { transform: translate(-50%, -50%) rotate(0deg); }
+    .turbine-blade:nth-child(2) { transform: translate(-50%, -50%) rotate(72deg); }
+    .turbine-blade:nth-child(3) { transform: translate(-50%, -50%) rotate(144deg); }
+    .turbine-blade:nth-child(4) { transform: translate(-50%, -50%) rotate(216deg); }
+    .turbine-blade:nth-child(5) { transform: translate(-50%, -50%) rotate(288deg); }
+    .generator {
+      position: absolute;
+      width: 100px;
+      height: 100px;
+      border: 8px solid #34495e;
+      border-radius: 50%;
+      background: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s;
+    }
+    .calculation-box {
+      position: absolute;
+      top:50px;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 10px;
+      width: 200px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      font-size: 12px;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.5s ease-out;
+    }
+    .calculation-box.active {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .calculation-box.highlight {
+      box-shadow: 0 0 20px rgba(46, 204, 113, 0.5);
+      transform: scale(1.05);
+    }
+    .water-flow {
+      position: absolute;
+      width: 8px;
+      background: linear-gradient(180deg, #a0d2ff 0%, transparent 100%);
+      opacity: 0;
+      transition: opacity 0.5s;
+    }
+    .start-button {
+      position: absolute;
+      top: 150px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 12px 24px;
+      font-size: 16px;
+      background: #2ecc71;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .start-button:hover {
+      background: #27ae60;
+    }
+    .status-text {
+      position: absolute;
+      top: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 14px;
+      color: #2c3e50;
+      text-align: center;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 8px 16px;
+      border-radius: 4px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .heat-loss {
+      position: absolute;
+      width: 120px;
+      height: 120px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 1s;
+    }
+    .heat-particle {
+      position: absolute;
+      width: 3px;
+      height: 3px;
+      background: #e74c3c;
+      border-radius: 50%;
+      opacity: 0;
+    }
+    .heat-loss-text {
+      position: absolute;
+      font-size: 11px;
+      color: #e74c3c;
+      opacity: 0;
+      transition: opacity 0.5s;
+    }
+    .calculation-box.heat {
+      border-left: 3px solid #e74c3c;
+    }
+    @keyframes rotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    @keyframes float {
+      0% {
+        transform: translate(0, 0) scale(1);
+        opacity: 0.8;
+      }
+      100% {
+        transform: translate(var(--x), var(--y)) scale(0);
+        opacity: 0;
+      }
+    }
+    .rotating {
+      animation: rotate 2s linear infinite;
+    }
+    
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Input Panel -->
+    <div class="input-panel" id="inputPanel">
+      <div class="input-group">
+        <label>Mass (kg)</label>
+        <input type="number" id="massInput" value="1000" min="0" step="100">
+      </div>
+      <div class="input-group">
+        <label>Height (m)</label>
+        <input type="number" id="heightInput" value="50" min="0" step="5">
+      </div>
+      <div class="input-group">
+        <label>Turbine Efficiency (%)</label>
+        <input type="number" id="turbineEffInput" value="90" min="0" max="100" step="5">
+      </div>
+      <div class="input-group">
+        <label>Generator Efficiency (%)</label>
+        <input type="number" id="generatorEffInput" value="95" min="0" max="100" step="5">
+      </div>
+    </div>
+
+    <button class="start-button" id="startButton">Start calculation</button>
+    <div class="status-text" id="statusText"></div>
+
+    <!-- Upper Reservoir -->
+    <div class="reservoir" style="top: 150px; left: 50px;">
+      <div class="water" id="upperWater" style="height: 70%;"></div>
+    </div>
+
+    <!-- Upper Pipe and Water Flow -->
+    <div class="pipe" style="top: 270px; left: 230px; height: 200px; transform: rotate(-45deg); transform-origin: top left;"></div>
+    <div class="water-flow" id="waterFlow1" style="top: 270px; left: 236px; height: 200px; transform: rotate(-45deg); transform-origin: top left;"></div>
+
+    <!-- Lower Pipe and Water Flow -->
+    <div class="pipe" style="top: 410px; left: 480px; height: 300px; transform: rotate(-45deg); transform-origin: top left;"></div>
+    <div class="water-flow" id="waterFlow2" style="top: 410px; left: 480px; height: 300px; transform: rotate(-45deg); transform-origin: top left;"></div>
+
+    <!-- Heat Loss Effect -->
+    <div class="heat-loss" id="heatLoss" style="top: 350px; left: 420px;"></div>
+    <div class="heat-loss-text" id="heatLossText" style="top: 345px; left: 430px;">
+      Heat Loss
+    </div>
+
+    <!-- Turbine -->
+    <div class="turbine-container" id="turbine" style="top: 360px; left: 400px;">
+      <div class="turbine-wheel">
+        <div class="turbine-axis"></div>
+        <div class="turbine-blades">
+          <div class="turbine-blade"></div>
+          <div class="turbine-blade"></div>
+          <div class="turbine-blade"></div>
+          <div class="turbine-blade"></div>
+          <div class="turbine-blade"></div>
+        </div>
+      </div>
+    </div>
+    <!-- Generator -->
+    <div class="generator" id="generator" style="top: 250px; right: 300px;">
+        <span id="powerOutput">0 kW</span>
+      </div>
+  
+      <!-- Lower Reservoir -->
+      <div class="reservoir" style="bottom: 100px; right: 50px;">
+        <div class="water" id="lowerWater" style="height: 30%;"></div>
+      </div>
+  
+      <!-- Calculation Boxes -->
+      <div class="calculation-box" id="potentialEnergyBox" style="top: 150px; left: 250px;">
+        <strong>Potential Energy (Ep)</strong><br>
+        <div id="potentialEnergyCalc"></div>
+      </div>
+  
+      <div class="calculation-box" id="kineticEnergyBox" style="top: 350px; left: 500px;">
+        <strong>Kinetic Energy (Ek)</strong><br>
+        <div id="kineticEnergyCalc"></div>
+      </div>
+  
+      <div class="calculation-box heat" id="heatLossBox" style="top: 460px; left: 260px;">
+        <strong>Heat Loss (Q)</strong><br>
+        <div id="heatLossCalc"></div>
+      </div>
+  
+      <div class="calculation-box" id="electricalEnergyBox" style="top: 150px; right: 50px;">
+        <strong>Electrical Energy (Ee)</strong><br>
+        <div id="electricalEnergyCalc"></div>
+      </div>
+    </div>
+  
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+  let isSimulating = false;
+  
+  const startButton = document.getElementById('startButton');
+  const statusText = document.getElementById('statusText');
+  const upperWater = document.getElementById('upperWater');
+  const lowerWater = document.getElementById('lowerWater');
+  const waterFlow1 = document.getElementById('waterFlow1');
+  const waterFlow2 = document.getElementById('waterFlow2'); // 하부 파이프 추가
+  const turbineBlades = document.querySelector('.turbine-blades');
+  const generator = document.getElementById('generator');
+  const powerOutput = document.getElementById('powerOutput');
+  const heatLoss = document.getElementById('heatLoss');
+  const heatLossText = document.getElementById('heatLossText');
+  const inputPanel = document.getElementById('inputPanel');
+
+  // Input references
+  const massInput = document.getElementById('massInput');
+  const heightInput = document.getElementById('heightInput');
+  const turbineEffInput = document.getElementById('turbineEffInput');
+  const generatorEffInput = document.getElementById('generatorEffInput');
+
+  const STEP_DELAY = 3000; // 각 단계의 지연 시간을 초로 설정
+  const COMPLETE_DELAY = 3000; // 완료 메시지 지연 시간을 초로 설정
+
+  function createHeatParticles() {
+    const particle = document.createElement('div');
+    particle.className = 'heat-particle';
+    
+    const angle = Math.random() * Math.PI * 2;
+    const distance = 20 + Math.random() * 30;
+    const x = Math.cos(angle) * distance;
+    const y = Math.sin(angle) * distance;
+    
+    particle.style.setProperty('--x', `${x}px`);
+    particle.style.setProperty('--y', `${y}px`);
+    particle.style.animation = `float ${1 + Math.random()}s ease-out forwards`;
+    
+    heatLoss.appendChild(particle);
+    setTimeout(() => particle.remove(), 10000);
+  }
+
+  function updateCalculations() {
+    const mass = Number(massInput.value);
+    const height = Number(heightInput.value);
+    const turbineEff = Number(turbineEffInput.value) / 100;
+    const generatorEff = Number(generatorEffInput.value) / 100;
+    const g = 9.81;
+
+    const Ep = mass * g * height;
+    const heatLossAmount = Ep * (1 - turbineEff);
+    const Ek = Ep * turbineEff;
+    const Ee = Ek * generatorEff;
+
+    document.getElementById('potentialEnergyCalc').innerHTML = 
+      `Ep = mgh<br>= ${mass} × ${g} × ${height}<br>= ${Ep.toFixed(0)} J`;
+    
+    document.getElementById('kineticEnergyCalc').innerHTML = 
+      `Ek = Ep × η_turbine<br>= ${Ep.toFixed(0)} × ${turbineEff}<br>= ${Ek.toFixed(0)} J`;
+
+    document.getElementById('heatLossCalc').innerHTML = 
+      `Q = Ep × (1 - η_turbine)<br>= ${Ep.toFixed(0)} × ${(1 - turbineEff).toFixed(2)}<br>= ${heatLossAmount.toFixed(0)} J`;
+    
+    document.getElementById('electricalEnergyCalc').innerHTML = 
+      `Ee = Ek × η_generator<br>= ${Ek.toFixed(0)} × ${generatorEff}<br>= ${Ee.toFixed(0)} J`;
+
+    return { Ep, Ek, Ee, heatLossAmount };
+  }
+
+  async function runSimulation() {
+    if (isSimulating) return;
+    isSimulating = true;
+    
+    // Input 패널 숨기기
+    inputPanel.style.opacity = '0';
+    inputPanel.style.pointerEvents = 'none';
+    
+    // 초기화
+    updateCalculations();
+    statusText.style.opacity = '1';
+    
+    // 1단계: 위치 에너지 계산
+    statusText.textContent = "Step 1: Calculating Potential Energy";
+    document.getElementById('potentialEnergyBox').classList.add('active', 'highlight');
+    await new Promise(r => setTimeout(r, STEP_DELAY)); // 지연 시간 4초
+    
+    // 2단계: 운동 에너지 변환 및 열 손실 발생
+    statusText.textContent = "Step 2: Converting to Kinetic Energy (Heat Loss Generated)";
+    upperWater.style.height = '30%';
+    waterFlow1.style.opacity = '1';
+    turbineBlades.classList.add('rotating');
+    document.getElementById('kineticEnergyBox').classList.add('active', 'highlight');
+    heatLoss.style.opacity = '1';
+    heatLossText.style.opacity = '1';
+    document.getElementById('heatLossBox').classList.add('active');
+    
+    const heatInterval = setInterval(createHeatParticles, 200);
+    await new Promise(r => setTimeout(r, STEP_DELAY)); // 지연 시간 4초
+    
+    // 3단계: 전기 에너지 생성
+    statusText.textContent = "Step 3: Generating Electrical Energy";
+    document.getElementById('electricalEnergyBox').classList.add('active', 'highlight');
+    generator.style.boxShadow = '0 0 20px #f1c40f';
+    lowerWater.style.height = '70%';
+    waterFlow2.style.opacity = '1'; // 하부 파이프의 물 흐름 활성화 추가
+    const calculations = updateCalculations();
+    powerOutput.textContent = `${(calculations.Ee / 1000).toFixed(1)} kW`;
+    await new Promise(r => setTimeout(r, STEP_DELAY)); // 지연 시간 4초
+    
+    // 완료
+    statusText.textContent = "Simulation Complete!";
+    await new Promise(r => setTimeout(r, COMPLETE_DELAY)); // 지연 시간 3초
+    
+    // 상태 리셋
+    statusText.style.opacity = '0';
+    clearInterval(heatInterval);
+    isSimulating = false;
+    
+    // Input 패널 다시 보이기
+    inputPanel.style.opacity = '1';
+    inputPanel.style.pointerEvents = 'auto';
+   
+  }
+
+  // Input 이벤트 리스너
+  [massInput, heightInput, turbineEffInput, generatorEffInput].forEach(input => {
+    input.addEventListener('input', updateCalculations);
+  });
+
+  // 초기 계산
+  const calculations = updateCalculations();
+  
+  // Start 버튼 이벤트 리스너
+  startButton.addEventListener('click', runSimulation);
+});
+
+    </script>
+  </body>
+  </html>
